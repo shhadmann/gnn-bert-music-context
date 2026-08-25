@@ -1,0 +1,598 @@
+[
+  {
+    "genre": "blues",
+    "track": "blues.00000"
+  },
+  {
+    "genre": "blues",
+    "track": "blues.00095"
+  },
+  {
+    "genre": "blues",
+    "track": "blues.00057"
+  },
+  {
+    "genre": "blues",
+    "track": "blues.00093"
+  },
+  {
+    "genre": "blues",
+    "track": "blues.00053"
+  },
+  {
+    "genre": "blues",
+    "track": "blues.00089"
+  },
+  {
+    "genre": "blues",
+    "track": "blues.00025"
+  },
+  {
+    "genre": "blues",
+    "track": "blues.00071"
+  },
+  {
+    "genre": "blues",
+    "track": "blues.00084"
+  },
+  {
+    "genre": "blues",
+    "track": "blues.00077"
+  },
+  {
+    "genre": "blues",
+    "track": "blues.00064"
+  },
+  {
+    "genre": "blues",
+    "track": "blues.00029"
+  },
+  {
+    "genre": "blues",
+    "track": "blues.00027"
+  },
+  {
+    "genre": "blues",
+    "track": "blues.00088"
+  },
+  {
+    "genre": "blues",
+    "track": "blues.00097"
+  },
+  {
+    "genre": "classical",
+    "track": "classical.00019"
+  },
+  {
+    "genre": "classical",
+    "track": "classical.00014"
+  },
+  {
+    "genre": "classical",
+    "track": "classical.00006"
+  },
+  {
+    "genre": "classical",
+    "track": "classical.00011"
+  },
+  {
+    "genre": "classical",
+    "track": "classical.00093"
+  },
+  {
+    "genre": "classical",
+    "track": "classical.00065"
+  },
+  {
+    "genre": "classical",
+    "track": "classical.00087"
+  },
+  {
+    "genre": "classical",
+    "track": "classical.00028"
+  },
+  {
+    "genre": "classical",
+    "track": "classical.00046"
+  },
+  {
+    "genre": "classical",
+    "track": "classical.00051"
+  },
+  {
+    "genre": "classical",
+    "track": "classical.00097"
+  },
+  {
+    "genre": "classical",
+    "track": "classical.00054"
+  },
+  {
+    "genre": "classical",
+    "track": "classical.00074"
+  },
+  {
+    "genre": "classical",
+    "track": "classical.00088"
+  },
+  {
+    "genre": "classical",
+    "track": "classical.00068"
+  },
+  {
+    "genre": "country",
+    "track": "country.00016"
+  },
+  {
+    "genre": "country",
+    "track": "country.00069"
+  },
+  {
+    "genre": "country",
+    "track": "country.00027"
+  },
+  {
+    "genre": "country",
+    "track": "country.00062"
+  },
+  {
+    "genre": "country",
+    "track": "country.00035"
+  },
+  {
+    "genre": "country",
+    "track": "country.00030"
+  },
+  {
+    "genre": "country",
+    "track": "country.00065"
+  },
+  {
+    "genre": "country",
+    "track": "country.00084"
+  },
+  {
+    "genre": "country",
+    "track": "country.00042"
+  },
+  {
+    "genre": "country",
+    "track": "country.00004"
+  },
+  {
+    "genre": "country",
+    "track": "country.00093"
+  },
+  {
+    "genre": "country",
+    "track": "country.00088"
+  },
+  {
+    "genre": "country",
+    "track": "country.00007"
+  },
+  {
+    "genre": "country",
+    "track": "country.00080"
+  },
+  {
+    "genre": "country",
+    "track": "country.00009"
+  },
+  {
+    "genre": "disco",
+    "track": "disco.00033"
+  },
+  {
+    "genre": "disco",
+    "track": "disco.00098"
+  },
+  {
+    "genre": "disco",
+    "track": "disco.00066"
+  },
+  {
+    "genre": "disco",
+    "track": "disco.00080"
+  },
+  {
+    "genre": "disco",
+    "track": "disco.00053"
+  },
+  {
+    "genre": "disco",
+    "track": "disco.00088"
+  },
+  {
+    "genre": "disco",
+    "track": "disco.00005"
+  },
+  {
+    "genre": "disco",
+    "track": "disco.00085"
+  },
+  {
+    "genre": "disco",
+    "track": "disco.00099"
+  },
+  {
+    "genre": "disco",
+    "track": "disco.00031"
+  },
+  {
+    "genre": "disco",
+    "track": "disco.00072"
+  },
+  {
+    "genre": "disco",
+    "track": "disco.00015"
+  },
+  {
+    "genre": "disco",
+    "track": "disco.00051"
+  },
+  {
+    "genre": "disco",
+    "track": "disco.00030"
+  },
+  {
+    "genre": "disco",
+    "track": "disco.00086"
+  },
+  {
+    "genre": "hiphop",
+    "track": "hiphop.00030"
+  },
+  {
+    "genre": "hiphop",
+    "track": "hiphop.00091"
+  },
+  {
+    "genre": "hiphop",
+    "track": "hiphop.00052"
+  },
+  {
+    "genre": "hiphop",
+    "track": "hiphop.00096"
+  },
+  {
+    "genre": "hiphop",
+    "track": "hiphop.00078"
+  },
+  {
+    "genre": "hiphop",
+    "track": "hiphop.00013"
+  },
+  {
+    "genre": "hiphop",
+    "track": "hiphop.00031"
+  },
+  {
+    "genre": "hiphop",
+    "track": "hiphop.00026"
+  },
+  {
+    "genre": "hiphop",
+    "track": "hiphop.00045"
+  },
+  {
+    "genre": "hiphop",
+    "track": "hiphop.00082"
+  },
+  {
+    "genre": "hiphop",
+    "track": "hiphop.00046"
+  },
+  {
+    "genre": "hiphop",
+    "track": "hiphop.00039"
+  },
+  {
+    "genre": "hiphop",
+    "track": "hiphop.00005"
+  },
+  {
+    "genre": "hiphop",
+    "track": "hiphop.00016"
+  },
+  {
+    "genre": "hiphop",
+    "track": "hiphop.00055"
+  },
+  {
+    "genre": "jazz",
+    "track": "jazz.00057"
+  },
+  {
+    "genre": "jazz",
+    "track": "jazz.00060"
+  },
+  {
+    "genre": "jazz",
+    "track": "jazz.00091"
+  },
+  {
+    "genre": "jazz",
+    "track": "jazz.00056"
+  },
+  {
+    "genre": "jazz",
+    "track": "jazz.00026"
+  },
+  {
+    "genre": "jazz",
+    "track": "jazz.00036"
+  },
+  {
+    "genre": "jazz",
+    "track": "jazz.00080"
+  },
+  {
+    "genre": "jazz",
+    "track": "jazz.00000"
+  },
+  {
+    "genre": "jazz",
+    "track": "jazz.00088"
+  },
+  {
+    "genre": "jazz",
+    "track": "jazz.00090"
+  },
+  {
+    "genre": "jazz",
+    "track": "jazz.00096"
+  },
+  {
+    "genre": "jazz",
+    "track": "jazz.00073"
+  },
+  {
+    "genre": "jazz",
+    "track": "jazz.00079"
+  },
+  {
+    "genre": "jazz",
+    "track": "jazz.00022"
+  },
+  {
+    "genre": "metal",
+    "track": "metal.00007"
+  },
+  {
+    "genre": "metal",
+    "track": "metal.00076"
+  },
+  {
+    "genre": "metal",
+    "track": "metal.00059"
+  },
+  {
+    "genre": "metal",
+    "track": "metal.00085"
+  },
+  {
+    "genre": "metal",
+    "track": "metal.00087"
+  },
+  {
+    "genre": "metal",
+    "track": "metal.00052"
+  },
+  {
+    "genre": "metal",
+    "track": "metal.00053"
+  },
+  {
+    "genre": "metal",
+    "track": "metal.00008"
+  },
+  {
+    "genre": "metal",
+    "track": "metal.00027"
+  },
+  {
+    "genre": "metal",
+    "track": "metal.00082"
+  },
+  {
+    "genre": "metal",
+    "track": "metal.00049"
+  },
+  {
+    "genre": "metal",
+    "track": "metal.00029"
+  },
+  {
+    "genre": "metal",
+    "track": "metal.00019"
+  },
+  {
+    "genre": "metal",
+    "track": "metal.00017"
+  },
+  {
+    "genre": "metal",
+    "track": "metal.00010"
+  },
+  {
+    "genre": "pop",
+    "track": "pop.00080"
+  },
+  {
+    "genre": "pop",
+    "track": "pop.00031"
+  },
+  {
+    "genre": "pop",
+    "track": "pop.00009"
+  },
+  {
+    "genre": "pop",
+    "track": "pop.00025"
+  },
+  {
+    "genre": "pop",
+    "track": "pop.00050"
+  },
+  {
+    "genre": "pop",
+    "track": "pop.00048"
+  },
+  {
+    "genre": "pop",
+    "track": "pop.00073"
+  },
+  {
+    "genre": "pop",
+    "track": "pop.00081"
+  },
+  {
+    "genre": "pop",
+    "track": "pop.00003"
+  },
+  {
+    "genre": "pop",
+    "track": "pop.00074"
+  },
+  {
+    "genre": "pop",
+    "track": "pop.00013"
+  },
+  {
+    "genre": "pop",
+    "track": "pop.00039"
+  },
+  {
+    "genre": "pop",
+    "track": "pop.00020"
+  },
+  {
+    "genre": "pop",
+    "track": "pop.00092"
+  },
+  {
+    "genre": "pop",
+    "track": "pop.00093"
+  },
+  {
+    "genre": "reggae",
+    "track": "reggae.00029"
+  },
+  {
+    "genre": "reggae",
+    "track": "reggae.00032"
+  },
+  {
+    "genre": "reggae",
+    "track": "reggae.00086"
+  },
+  {
+    "genre": "reggae",
+    "track": "reggae.00034"
+  },
+  {
+    "genre": "reggae",
+    "track": "reggae.00058"
+  },
+  {
+    "genre": "reggae",
+    "track": "reggae.00045"
+  },
+  {
+    "genre": "reggae",
+    "track": "reggae.00042"
+  },
+  {
+    "genre": "reggae",
+    "track": "reggae.00081"
+  },
+  {
+    "genre": "reggae",
+    "track": "reggae.00054"
+  },
+  {
+    "genre": "reggae",
+    "track": "reggae.00044"
+  },
+  {
+    "genre": "reggae",
+    "track": "reggae.00067"
+  },
+  {
+    "genre": "reggae",
+    "track": "reggae.00070"
+  },
+  {
+    "genre": "reggae",
+    "track": "reggae.00098"
+  },
+  {
+    "genre": "reggae",
+    "track": "reggae.00047"
+  },
+  {
+    "genre": "reggae",
+    "track": "reggae.00074"
+  },
+  {
+    "genre": "rock",
+    "track": "rock.00025"
+  },
+  {
+    "genre": "rock",
+    "track": "rock.00093"
+  },
+  {
+    "genre": "rock",
+    "track": "rock.00077"
+  },
+  {
+    "genre": "rock",
+    "track": "rock.00086"
+  },
+  {
+    "genre": "rock",
+    "track": "rock.00058"
+  },
+  {
+    "genre": "rock",
+    "track": "rock.00081"
+  },
+  {
+    "genre": "rock",
+    "track": "rock.00036"
+  },
+  {
+    "genre": "rock",
+    "track": "rock.00029"
+  },
+  {
+    "genre": "rock",
+    "track": "rock.00004"
+  },
+  {
+    "genre": "rock",
+    "track": "rock.00037"
+  },
+  {
+    "genre": "rock",
+    "track": "rock.00060"
+  },
+  {
+    "genre": "rock",
+    "track": "rock.00076"
+  },
+  {
+    "genre": "rock",
+    "track": "rock.00057"
+  },
+  {
+    "genre": "rock",
+    "track": "rock.00052"
+  },
+  {
+    "genre": "rock",
+    "track": "rock.00000"
+  }
+]
