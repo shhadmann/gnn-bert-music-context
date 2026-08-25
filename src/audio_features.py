@@ -10,6 +10,10 @@ import librosa
 import yaml
 from pathlib import Path
 
+class AudioLoadError(Exception):
+    """Raised when an audio file can't be loaded (corrupted, unsupported format, etc.)."""
+    pass
+
 
 def load_config(config_path="config.yaml"):
     with open(config_path, "r") as f:
@@ -17,8 +21,14 @@ def load_config(config_path="config.yaml"):
 
 
 def load_audio(path, sr=22050):
-    """Load an audio file, resampled to the target sample rate."""
-    y, sr = librosa.load(path, sr=sr, mono=True)
+    """Load an audio file, resampled to the target sample rate.
+    Raises AudioLoadError on corrupted/unreadable files instead of
+    letting a raw librosa/soundfile exception propagate.
+    """
+    try:
+        y, sr = librosa.load(path, sr=sr, mono=True)
+    except Exception as e:
+        raise AudioLoadError(f"Failed to load audio file {path}: {e}")
     return y, sr
 
 
