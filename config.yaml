@@ -1,0 +1,39 @@
+seed: 42
+
+audio:
+  sample_rate: 22050
+  n_mels: 128
+  n_chroma: 12
+  segment_duration_sec: 8   # within the spec's 5-10s range
+
+graph:
+  similarity_threshold: 0.8   # starting point for tau — will be tuned on val data
+  edge_type: "temporal_and_similarity"
+
+bert:
+  model_name: "bert-base-uncased"
+  max_length: 128
+
+gnn:
+  hidden_channels: 128
+  num_layers: 3
+  dropout: 0.3
+  architecture: "graphsage"
+
+cnn_baseline:
+  hidden_channels: 128
+  learning_rate: 0.001
+  epochs: 20
+
+fusion:
+  alpha: 0.5   # DEAM valence loss weight — placeholder, tune later
+  beta: 0.5    # DEAM arousal loss weight — placeholder, tune later
+
+contrastive:
+  temperature: 0.07
+  embed_dim: 256
+  top_k_retrieval: 10
+
+training:
+  batch_size: 32
+  learning_rate: 0.0002
