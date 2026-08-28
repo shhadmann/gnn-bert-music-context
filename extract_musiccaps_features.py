@@ -33,7 +33,7 @@ for _, row in tqdm(df.iterrows(), total=len(df)):
         continue
 
     try:
-        result = process_track(str(mp3_path), config)
+        result = process_track(str(mp3_path), config, segment_duration_override=3)
     except AudioLoadError as e:
         skipped.append((ytid, str(e)))
         continue

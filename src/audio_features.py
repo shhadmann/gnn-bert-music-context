@@ -92,7 +92,7 @@ def extract_segment_features(y, sr, segment_duration_sec=8,
     return features
 
 
-def process_track(path, config):
+def process_track(path, config, segment_duration_override=None):
     """End-to-end: load a track and extract everything needed downstream.
     Returns a dict with the full-track log-mel (for the CNN baseline) and
     segment-level features (for graph construction).
@@ -104,9 +104,10 @@ def process_track(path, config):
         extract_log_mel(y, sr, n_mels=audio_cfg["n_mels"])
     )
 
+    segment_duration = segment_duration_override if segment_duration_override is not None else audio_cfg["segment_duration_sec"]
     segment_feats = extract_segment_features(
         y, sr,
-        segment_duration_sec=audio_cfg["segment_duration_sec"],
+        segment_duration_sec=segment_duration,
         feature_type="chroma",
         n_mels=audio_cfg["n_mels"],
         n_chroma=audio_cfg["n_chroma"],
