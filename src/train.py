@@ -145,7 +145,7 @@ def train_task1(config_path="config.yaml", max_samples=None):
     test_loader = DataLoader(test_ds, batch_size=batch_size, shuffle=False, collate_fn=collate)
 
     model = BertTagClassifier(config["bert"]["model_name"], num_tags=50).to(device)
-    optimizer = torch.optim.AdamW(model.parameters(), lr=config["training"]["learning_rate"])
+    optimizer = torch.optim.AdamW(model.parameters(), lr=config["bert"]["learning_rate"])
     criterion = nn.BCEWithLogitsLoss()
 
     epochs = 5  # BERT fine-tuning typically needs few epochs

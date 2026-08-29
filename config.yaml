@@ -13,6 +13,7 @@ graph:
 bert:
   model_name: "bert-base-uncased"
   max_length: 128
+  learning_rate: 0.00002
 
 gnn:
   hidden_channels: 128
