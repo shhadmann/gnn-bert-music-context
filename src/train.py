@@ -44,7 +44,7 @@ def collate_fn(batch, tokenizer, max_length):
     return tokenized, tags
 
 
-def evaluate(model, loader, device):
+def evaluate(model, loader, device, threshold=0.5):
     model.eval()
     all_preds, all_labels = [], []
     with torch.no_grad():
@@ -58,11 +58,10 @@ def evaluate(model, loader, device):
     all_preds = np.concatenate(all_preds)
     all_labels = np.concatenate(all_labels)
 
-    binary_preds = (all_preds > 0.5).astype(int)
+    binary_preds = (all_preds > threshold).astype(int)
     macro_f1 = f1_score(all_labels, binary_preds, average="macro", zero_division=0)
     micro_f1 = f1_score(all_labels, binary_preds, average="micro", zero_division=0)
 
-    # AUC-PR, mean over tags (skip tags with no positive examples in this split)
     aucpr_scores = []
     for i in range(all_labels.shape[1]):
         if all_labels[:, i].sum() > 0:
@@ -70,6 +69,40 @@ def evaluate(model, loader, device):
     mean_aucpr = float(np.mean(aucpr_scores)) if aucpr_scores else 0.0
 
     return {"macro_f1": macro_f1, "micro_f1": micro_f1, "aucpr": mean_aucpr}
+
+
+def find_best_threshold(model, loader, device):
+    """
+    MagnaTagATune's tags are heavily imbalanced (most labels are 0 per
+    clip), which commonly pushes a fixed 0.5 threshold to read F1=0
+    even when the model's ranking (AUC-PR) is meaningfully non-random.
+    This scans a range of thresholds on validation data and picks the
+    one that actually maximizes macro-F1, rather than trusting 0.5
+    blindly.
+    """
+    model.eval()
+    all_preds, all_labels = [], []
+    with torch.no_grad():
+        for tokenized, tags in loader:
+            input_ids = tokenized["input_ids"].to(device)
+            attention_mask = tokenized["attention_mask"].to(device)
+            logits, _ = model(input_ids, attention_mask)
+            preds = torch.sigmoid(logits).cpu().numpy()
+            all_preds.append(preds)
+            all_labels.append(tags.numpy())
+    all_preds = np.concatenate(all_preds)
+    all_labels = np.concatenate(all_labels)
+
+    best_threshold, best_f1 = 0.5, -1
+    for t in np.arange(0.05, 0.95, 0.05):
+        binary_preds = (all_preds > t).astype(int)
+        f1 = f1_score(all_labels, binary_preds, average="macro", zero_division=0)
+        if f1 > best_f1:
+            best_f1 = f1
+            best_threshold = float(t)
+
+    print(f"Best threshold found on validation set: {best_threshold:.2f} (macro_f1={best_f1:.4f})")
+    return best_threshold
 
 
 def train_task1(config_path="config.yaml", max_samples=None):
@@ -146,10 +179,14 @@ def train_task1(config_path="config.yaml", max_samples=None):
             torch.save(model.state_dict(), "results/bert_best.pt")
             print(f"  -> New best model saved (val_macro_f1={best_val_f1:.4f})")
 
-    # Final test evaluation using the best checkpoint
+    # Final test evaluation using the best checkpoint, with a tuned
+    # threshold rather than a blind 0.5 — see find_best_threshold's
+    # docstring for why this matters given MagnaTagATune's label sparsity.
     model.load_state_dict(torch.load("results/bert_best.pt"))
-    test_metrics = evaluate(model, test_loader, device)
-    print(f"\nFinal test metrics: {test_metrics}")
+    best_threshold = find_best_threshold(model, val_loader, device)
+    test_metrics = evaluate(model, test_loader, device, threshold=best_threshold)
+    test_metrics["threshold_used"] = best_threshold
+    print(f"\nFinal test metrics (threshold={best_threshold:.2f}): {test_metrics}")
 
     Path("results").mkdir(exist_ok=True)
     with open("results/task1_history.json", "w") as f:
