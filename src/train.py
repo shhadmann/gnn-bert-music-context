@@ -266,7 +266,7 @@ def train_gnn_task2(config_path="config.yaml"):
     optimizer = torch.optim.AdamW(model.parameters(), lr=config["training"]["learning_rate"])
     criterion = nn.CrossEntropyLoss()
 
-    epochs = 30
+    epochs = 60
     best_val_f1 = -1
     history = []
 
