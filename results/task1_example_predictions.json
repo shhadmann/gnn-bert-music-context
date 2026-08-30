@@ -1,0 +1,82 @@
+[
+  {
+    "clip_id": 33136,
+    "text": "Shaman Fever Shiva In Exile Ethnic",
+    "true_tags": [
+      "drums"
+    ],
+    "predicted_tags": [
+      "slow",
+      "drums",
+      "ambient",
+      "beat",
+      "vocal",
+      "female"
+    ]
+  },
+  {
+    "clip_id": 17116,
+    "text": "Confusion Says Ambient Teknology The All Seeing Eye Project",
+    "true_tags": [
+      "techno",
+      "drums",
+      "electronic",
+      "quiet"
+    ],
+    "predicted_tags": [
+      "techno",
+      "drums",
+      "electronic",
+      "fast",
+      "beat",
+      "synth",
+      "loud",
+      "dance"
+    ]
+  },
+  {
+    "clip_id": 35716,
+    "text": "Hera Justin Bianco Forge",
+    "true_tags": [
+      "slow",
+      "piano"
+    ],
+    "predicted_tags": [
+      "guitar",
+      "classical",
+      "slow",
+      "strings",
+      "piano",
+      "quiet",
+      "soft"
+    ]
+  },
+  {
+    "clip_id": 128,
+    "text": "1x3 Tilopa Turkishauch",
+    "true_tags": [
+      "flute"
+    ],
+    "predicted_tags": [
+      "slow",
+      "ambient",
+      "quiet",
+      "flute"
+    ]
+  },
+  {
+    "clip_id": 51052,
+    "text": "-Jardin Oublie- The Headroom Project Jetuton Andawai",
+    "true_tags": [
+      "classical",
+      "strings"
+    ],
+    "predicted_tags": [
+      "classical",
+      "slow",
+      "strings",
+      "ambient",
+      "quiet"
+    ]
+  }
+]
