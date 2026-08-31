@@ -2,6 +2,7 @@
 Training script for the GNN-BERT music context project.
 Task 1: BERT multi-label tag classifier (MagnaTagATune).
 Task 2: GNN + CNN baseline genre classifier (GTZAN).
+Task 3, Stage A: GNN-BERT fusion + 4-way ablation suite (MagnaTagATune).
 """
 
 import json
@@ -16,10 +17,12 @@ import yaml
 from sklearn.metrics import f1_score, average_precision_score as ap_score
 from torch.utils.data import Dataset, DataLoader
 from torch_geometric.loader import DataLoader as GeoDataLoader
+from torch_geometric.data import Batch
 from tqdm import tqdm
 
 from bert_encoder import BertTagClassifier, load_tokenizer, tokenize_batch
 from gnn_model import GNNGenreClassifier, CNNBaseline
+from fusion_model import CrossAttentionFusion, EarlyConcatFusion
 
 
 # ============================================================
@@ -418,6 +421,216 @@ def train_cnn_baseline(config_path="config.yaml"):
         json.dump(test_metrics, f, indent=2)
 
     return model, test_metrics
+
+
+# ============================================================
+# Task 3, Stage A: GNN-BERT Fusion on MagnaTagATune
+# ============================================================
+
+class MTATFusionDataset(Dataset):
+    """Pairs a MagnaTagATune graph with its tokenized text and tag label."""
+    def __init__(self, clip_ids, text_labels_df, top50_tags, graphs_root="data/processed/magnatagatune/graphs"):
+        self.clip_ids = [c for c in clip_ids if (Path(graphs_root) / f"{c}.pt").exists()]
+        self.text_labels = text_labels_df.set_index("clip_id")
+        self.top50_tags = top50_tags
+        self.graphs_root = graphs_root
+
+    def __len__(self):
+        return len(self.clip_ids)
+
+    def __getitem__(self, idx):
+        clip_id = self.clip_ids[idx]
+        graph = torch.load(Path(self.graphs_root) / f"{clip_id}.pt", weights_only=False)
+        row = self.text_labels.loc[clip_id]
+        text = row["text"]
+        tags = row[self.top50_tags].values.astype("float32")
+        return graph, text, tags
+
+
+def fusion_collate_fn(batch, tokenizer, max_length):
+    graphs, texts, tags = zip(*batch)
+    graph_batch = Batch.from_data_list(list(graphs))
+    tag_tensor = torch.tensor(np.array(tags), dtype=torch.float)
+    tokenized = tokenize_batch(tokenizer, list(texts), max_length=max_length)
+    return graph_batch, tokenized, tag_tensor
+
+
+def evaluate_fusion(gnn, bert, fusion, loader, device, mode, threshold=0.5):
+    gnn.eval()
+    bert.eval()
+    if fusion is not None:
+        fusion.eval()
+    all_preds, all_labels = [], []
+    with torch.no_grad():
+        for graph_batch, tokenized, tags in loader:
+            graph_batch = graph_batch.to(device)
+            input_ids = tokenized["input_ids"].to(device)
+            attention_mask = tokenized["attention_mask"].to(device)
+
+            _, graph_emb = gnn(graph_batch.x, graph_batch.edge_index, graph_batch.batch)
+            bert_out = bert.bert(input_ids=input_ids, attention_mask=attention_mask)
+            token_emb = bert_out.last_hidden_state
+            cls_emb = token_emb[:, 0, :]
+
+            if mode == "cross_attention":
+                logits, _, _ = fusion(graph_emb, token_emb, attention_mask)
+            elif mode == "early_concat":
+                logits, _ = fusion(graph_emb, cls_emb)
+            elif mode == "bert_only":
+                logits = bert.classifier(bert.dropout(cls_emb))
+            elif mode == "gnn_only":
+                logits = fusion(graph_emb)
+            else:
+                raise ValueError(f"Unknown mode: {mode}")
+
+            preds = torch.sigmoid(logits).cpu().numpy()
+            all_preds.append(preds)
+            all_labels.append(tags.numpy())
+
+    all_preds = np.concatenate(all_preds)
+    all_labels = np.concatenate(all_labels)
+    binary_preds = (all_preds > threshold).astype(int)
+    macro_f1 = f1_score(all_labels, binary_preds, average="macro", zero_division=0)
+    micro_f1 = f1_score(all_labels, binary_preds, average="micro", zero_division=0)
+    aucpr_scores = [ap_score(all_labels[:, i], all_preds[:, i])
+                     for i in range(all_labels.shape[1]) if all_labels[:, i].sum() > 0]
+    mean_aucpr = float(np.mean(aucpr_scores)) if aucpr_scores else 0.0
+    return {"macro_f1": macro_f1, "micro_f1": micro_f1, "aucpr": mean_aucpr}
+
+
+def train_fusion_ablation(mode, config_path="config.yaml", epochs=10):
+    """
+    mode: one of "bert_only", "gnn_only", "early_concat", "cross_attention"
+    """
+    with open(config_path) as f:
+        config = yaml.safe_load(f)
+    torch.manual_seed(config["seed"])
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"Using device: {device} | Mode: {mode}")
+
+    with open("data/processed/magnatagatune/top50_tags.json") as f:
+        top50_tags = json.load(f)
+    text_labels = pd.read_csv("data/processed/magnatagatune/text_labels.csv")
+
+    with open("data/splits/mtag_train.json") as f:
+        train_ids = json.load(f)
+    with open("data/splits/mtag_val.json") as f:
+        val_ids = json.load(f)
+    with open("data/splits/mtag_test.json") as f:
+        test_ids = json.load(f)
+
+    tokenizer = load_tokenizer(config["bert"]["model_name"])
+    max_length = config["bert"]["max_length"]
+
+    train_ds = MTATFusionDataset(train_ids, text_labels, top50_tags)
+    val_ds = MTATFusionDataset(val_ids, text_labels, top50_tags)
+    test_ds = MTATFusionDataset(test_ids, text_labels, top50_tags)
+
+    collate = lambda b: fusion_collate_fn(b, tokenizer, max_length)
+    batch_size = config["training"]["batch_size"]
+    train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True, collate_fn=collate)
+    val_loader = DataLoader(val_ds, batch_size=batch_size, shuffle=False, collate_fn=collate)
+    test_loader = DataLoader(test_ds, batch_size=batch_size, shuffle=False, collate_fn=collate)
+
+    graph_dim = config["gnn"]["hidden_channels"]
+    in_channels = train_ds[0][0].x.shape[1]
+
+    gnn = GNNGenreClassifier(
+        in_channels=in_channels, hidden_channels=graph_dim,
+        num_layers=config["gnn"]["num_layers"], num_classes=10,  # num_classes unused here, just needed for init
+        dropout=config["gnn"]["dropout"],
+    ).to(device)
+
+    bert = BertTagClassifier(config["bert"]["model_name"], num_tags=50).to(device)
+
+    if mode == "bert_only":
+        bert.load_state_dict(torch.load("results/bert_best.pt", map_location=device))
+        for p in bert.parameters():
+            p.requires_grad = False
+        fusion = None
+    elif mode == "gnn_only":
+        fusion = nn.Linear(graph_dim, 50).to(device)  # simple head on graph embedding alone
+        trainable_params = list(gnn.parameters()) + list(fusion.parameters())
+    elif mode == "early_concat":
+        fusion = EarlyConcatFusion(graph_dim=graph_dim, bert_dim=768, num_tags=50).to(device)
+        trainable_params = list(gnn.parameters()) + list(fusion.parameters()) + list(bert.parameters())
+    elif mode == "cross_attention":
+        fusion = CrossAttentionFusion(graph_dim=graph_dim, bert_dim=768, num_tags=50).to(device)
+        trainable_params = list(gnn.parameters()) + list(fusion.parameters()) + list(bert.parameters())
+    else:
+        raise ValueError(f"Unknown mode: {mode}")
+
+    if mode == "bert_only":
+        # No training needed — just evaluate the frozen, already-trained BERT checkpoint
+        test_metrics = evaluate_fusion(gnn, bert, fusion, test_loader, device, mode)
+        print(f"\n[{mode}] Test metrics (no training, reused checkpoint): {test_metrics}")
+        Path("results").mkdir(exist_ok=True)
+        with open(f"results/task3_{mode}_test_metrics.json", "w") as f:
+            json.dump(test_metrics, f, indent=2)
+        return test_metrics
+
+    optimizer = torch.optim.AdamW(trainable_params, lr=config["bert"]["learning_rate"])
+    criterion = nn.BCEWithLogitsLoss()
+
+    best_val_f1 = -1
+    history = []
+
+    for epoch in range(epochs):
+        gnn.train()
+        bert.train()
+        fusion.train()
+        total_loss = 0
+
+        for graph_batch, tokenized, tags in tqdm(train_loader, desc=f"[{mode}] Epoch {epoch+1}/{epochs}"):
+            graph_batch = graph_batch.to(device)
+            input_ids = tokenized["input_ids"].to(device)
+            attention_mask = tokenized["attention_mask"].to(device)
+            tags = tags.to(device)
+
+            optimizer.zero_grad()
+            _, graph_emb = gnn(graph_batch.x, graph_batch.edge_index, graph_batch.batch)
+            bert_out = bert.bert(input_ids=input_ids, attention_mask=attention_mask)
+            token_emb = bert_out.last_hidden_state
+            cls_emb = token_emb[:, 0, :]
+
+            if mode == "cross_attention":
+                logits, _, _ = fusion(graph_emb, token_emb, attention_mask)
+            elif mode == "early_concat":
+                logits, _ = fusion(graph_emb, cls_emb)
+            elif mode == "gnn_only":
+                logits = fusion(graph_emb)
+
+            loss = criterion(logits, tags)
+            loss.backward()
+            optimizer.step()
+            total_loss += loss.item()
+
+        avg_loss = total_loss / len(train_loader)
+        val_metrics = evaluate_fusion(gnn, bert, fusion, val_loader, device, mode)
+        print(f"[{mode}] Epoch {epoch+1}: train_loss={avg_loss:.4f}, "
+              f"val_macro_f1={val_metrics['macro_f1']:.4f}, val_aucpr={val_metrics['aucpr']:.4f}")
+        history.append({"epoch": epoch + 1, "train_loss": avg_loss, **val_metrics})
+
+        if val_metrics["macro_f1"] > best_val_f1:
+            best_val_f1 = val_metrics["macro_f1"]
+            Path("results").mkdir(exist_ok=True)
+            torch.save(gnn.state_dict(), f"results/task3_{mode}_gnn.pt")
+            torch.save(fusion.state_dict(), f"results/task3_{mode}_fusion.pt")
+            torch.save(bert.state_dict(), f"results/task3_{mode}_bert.pt")
+
+    gnn.load_state_dict(torch.load(f"results/task3_{mode}_gnn.pt"))
+    fusion.load_state_dict(torch.load(f"results/task3_{mode}_fusion.pt"))
+    bert.load_state_dict(torch.load(f"results/task3_{mode}_bert.pt"))
+
+    test_metrics = evaluate_fusion(gnn, bert, fusion, test_loader, device, mode)
+    print(f"\n[{mode}] Final test metrics: {test_metrics}")
+
+    with open(f"results/task3_{mode}_history.json", "w") as f:
+        json.dump(history, f, indent=2)
+    with open(f"results/task3_{mode}_test_metrics.json", "w") as f:
+        json.dump(test_metrics, f, indent=2)
+
+    return test_metrics
 
 
 if __name__ == "__main__":
