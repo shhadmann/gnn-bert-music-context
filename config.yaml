@@ -24,7 +24,7 @@ gnn:
 cnn_baseline:
   hidden_channels: 128
   learning_rate: 0.001
-  epochs: 20
+  epochs: 40
 
 fusion:
   alpha: 0.5   # DEAM valence loss weight — placeholder, tune later
