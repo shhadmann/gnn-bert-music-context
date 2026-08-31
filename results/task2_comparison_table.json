@@ -1,0 +1,12 @@
+{
+  "GNN (segment graphs)": {
+    "epochs_trained": 60,
+    "macro_f1": 0.2891828556072742,
+    "aucpr": 0.3416595696158676
+  },
+  "CNN baseline (full mel-spectrogram)": {
+    "epochs_trained": 40,
+    "macro_f1": 0.6925582826275625,
+    "aucpr": 0.7596349614778111
+  }
+}
