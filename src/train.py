@@ -561,9 +561,25 @@ def train_fusion_ablation(mode, config_path="config.yaml", epochs=10):
         raise ValueError(f"Unknown mode: {mode}")
 
     if mode == "bert_only":
-        # No training needed — just evaluate the frozen, already-trained BERT checkpoint
-        test_metrics = evaluate_fusion(gnn, bert, fusion, test_loader, device, mode)
-        print(f"\n[{mode}] Test metrics (no training, reused checkpoint): {test_metrics}")
+        # No training needed — just evaluate the frozen, already-trained BERT checkpoint,
+        # using the same tuned-threshold approach as Task 1 (find_best_threshold logic,
+        # adapted here since evaluate_fusion has a different signature than evaluate).
+        best_t, best_f1 = 0.5, -1
+        for t in np.arange(0.05, 0.95, 0.05):
+            m = evaluate_fusion(gnn, bert, fusion, val_loader, device, mode, threshold=float(t))
+            if m["macro_f1"] > best_f1:
+                best_f1 = m["macro_f1"]
+                best_t = float(t)
+    best_t, best_f1 = 0.5, -1
+    for t in np.arange(0.05, 0.95, 0.05):
+        m = evaluate_fusion(gnn, bert, fusion, val_loader, device, mode, threshold=float(t))
+        if m["macro_f1"] > best_f1:
+            best_f1 = m["macro_f1"]
+            best_t = float(t)
+    print(f"Best threshold on validation: {best_t:.2f} (macro_f1={best_f1:.4f})")
+    test_metrics = evaluate_fusion(gnn, bert, fusion, test_loader, device, mode, threshold=best_t)
+    test_metrics["threshold_used"] = best_t
+    print(f"\n[{mode}] Final test metrics: {test_metrics}")
         Path("results").mkdir(exist_ok=True)
         with open(f"results/task3_{mode}_test_metrics.json", "w") as f:
             json.dump(test_metrics, f, indent=2)
