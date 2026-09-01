@@ -79,14 +79,6 @@ def evaluate(model, loader, device, threshold=0.5):
 
 
 def find_best_threshold(model, loader, device):
-    """
-    MagnaTagATune's tags are heavily imbalanced (most labels are 0 per
-    clip), which commonly pushes a fixed 0.5 threshold to read F1=0
-    even when the model's ranking (AUC-PR) is meaningfully non-random.
-    This scans a range of thresholds on validation data and picks the
-    one that actually maximizes macro-F1, rather than trusting 0.5
-    blindly.
-    """
     model.eval()
     all_preds, all_labels = [], []
     with torch.no_grad():
@@ -134,7 +126,7 @@ def train_task1(config_path="config.yaml", max_samples=None):
     with open("data/splits/mtag_test.json") as f:
         test_ids = json.load(f)
 
-    if max_samples:  # for quick local sanity-checks only
+    if max_samples:
         train_ids = train_ids[:max_samples]
         val_ids = val_ids[:max_samples // 4]
 
@@ -155,7 +147,7 @@ def train_task1(config_path="config.yaml", max_samples=None):
     optimizer = torch.optim.AdamW(model.parameters(), lr=config["bert"]["learning_rate"])
     criterion = nn.BCEWithLogitsLoss()
 
-    epochs = 5  # BERT fine-tuning typically needs few epochs
+    epochs = 5
     best_val_f1 = -1
     history = []
 
@@ -207,7 +199,7 @@ def train_task1(config_path="config.yaml", max_samples=None):
 
 def load_gtzan_graphs(split_ids_path, graphs_root="data/processed/gtzan_graphs"):
     with open(split_ids_path) as f:
-        split_entries = json.load(f)  # list of {"genre": ..., "track": ...}
+        split_entries = json.load(f)
     graphs = []
     for entry in split_entries:
         path = Path(graphs_root) / entry["genre"] / f"{entry['track']}.pt"
@@ -309,7 +301,6 @@ def train_gnn_task2(config_path="config.yaml"):
 
 
 class GTZANMelDataset(Dataset):
-    """For the CNN baseline — loads full-track log-mel spectrograms directly."""
     def __init__(self, split_ids_path, features_root="data/processed/gtzan"):
         with open(split_ids_path) as f:
             self.entries = json.load(f)
@@ -325,13 +316,12 @@ class GTZANMelDataset(Dataset):
         entry = self.entries[idx]
         path = Path(self.features_root) / entry["genre"] / f"{entry['track']}.npz"
         d = np.load(path)
-        mel = torch.tensor(d["full_log_mel"], dtype=torch.float).unsqueeze(0)  # (1, n_mels, time)
+        mel = torch.tensor(d["full_log_mel"], dtype=torch.float).unsqueeze(0)
         label = self.genre_to_idx[entry["genre"]]
         return mel, label
 
 
 def cnn_collate_fn(batch):
-    """Pad variable-length time dimension to the max length in the batch."""
     mels, labels = zip(*batch)
     max_len = max(m.shape[-1] for m in mels)
     padded = torch.stack([
@@ -428,7 +418,6 @@ def train_cnn_baseline(config_path="config.yaml"):
 # ============================================================
 
 class MTATFusionDataset(Dataset):
-    """Pairs a MagnaTagATune graph with its tokenized text and tag label."""
     def __init__(self, clip_ids, text_labels_df, top50_tags, graphs_root="data/processed/magnatagatune/graphs"):
         self.clip_ids = [c for c in clip_ids if (Path(graphs_root) / f"{c}.pt").exists()]
         self.text_labels = text_labels_df.set_index("clip_id")
@@ -498,6 +487,17 @@ def evaluate_fusion(gnn, bert, fusion, loader, device, mode, threshold=0.5):
     return {"macro_f1": macro_f1, "micro_f1": micro_f1, "aucpr": mean_aucpr}
 
 
+def _tune_threshold_fusion(gnn, bert, fusion, val_loader, device, mode):
+    best_t, best_f1 = 0.5, -1
+    for t in np.arange(0.05, 0.95, 0.05):
+        m = evaluate_fusion(gnn, bert, fusion, val_loader, device, mode, threshold=float(t))
+        if m["macro_f1"] > best_f1:
+            best_f1 = m["macro_f1"]
+            best_t = float(t)
+    print(f"Best threshold on validation: {best_t:.2f} (macro_f1={best_f1:.4f})")
+    return best_t
+
+
 def train_fusion_ablation(mode, config_path="config.yaml", epochs=10):
     """
     mode: one of "bert_only", "gnn_only", "early_concat", "cross_attention"
@@ -537,19 +537,31 @@ def train_fusion_ablation(mode, config_path="config.yaml", epochs=10):
 
     gnn = GNNGenreClassifier(
         in_channels=in_channels, hidden_channels=graph_dim,
-        num_layers=config["gnn"]["num_layers"], num_classes=10,  # num_classes unused here, just needed for init
+        num_layers=config["gnn"]["num_layers"], num_classes=10,
         dropout=config["gnn"]["dropout"],
     ).to(device)
 
     bert = BertTagClassifier(config["bert"]["model_name"], num_tags=50).to(device)
+
+    Path("results").mkdir(exist_ok=True)
 
     if mode == "bert_only":
         bert.load_state_dict(torch.load("results/bert_best.pt", map_location=device))
         for p in bert.parameters():
             p.requires_grad = False
         fusion = None
+
+        best_t = _tune_threshold_fusion(gnn, bert, fusion, val_loader, device, mode)
+        test_metrics = evaluate_fusion(gnn, bert, fusion, test_loader, device, mode, threshold=best_t)
+        test_metrics["threshold_used"] = best_t
+        print(f"\n[{mode}] Test metrics (no training, reused checkpoint): {test_metrics}")
+
+        with open(f"results/task3_{mode}_test_metrics.json", "w") as f:
+            json.dump(test_metrics, f, indent=2)
+        return test_metrics
+
     elif mode == "gnn_only":
-        fusion = nn.Linear(graph_dim, 50).to(device)  # simple head on graph embedding alone
+        fusion = nn.Linear(graph_dim, 50).to(device)
         trainable_params = list(gnn.parameters()) + list(fusion.parameters())
     elif mode == "early_concat":
         fusion = EarlyConcatFusion(graph_dim=graph_dim, bert_dim=768, num_tags=50).to(device)
@@ -559,31 +571,6 @@ def train_fusion_ablation(mode, config_path="config.yaml", epochs=10):
         trainable_params = list(gnn.parameters()) + list(fusion.parameters()) + list(bert.parameters())
     else:
         raise ValueError(f"Unknown mode: {mode}")
-
-    if mode == "bert_only":
-        # No training needed — just evaluate the frozen, already-trained BERT checkpoint,
-        # using the same tuned-threshold approach as Task 1 (find_best_threshold logic,
-        # adapted here since evaluate_fusion has a different signature than evaluate).
-        best_t, best_f1 = 0.5, -1
-        for t in np.arange(0.05, 0.95, 0.05):
-            m = evaluate_fusion(gnn, bert, fusion, val_loader, device, mode, threshold=float(t))
-            if m["macro_f1"] > best_f1:
-                best_f1 = m["macro_f1"]
-                best_t = float(t)
-    best_t, best_f1 = 0.5, -1
-    for t in np.arange(0.05, 0.95, 0.05):
-        m = evaluate_fusion(gnn, bert, fusion, val_loader, device, mode, threshold=float(t))
-        if m["macro_f1"] > best_f1:
-            best_f1 = m["macro_f1"]
-            best_t = float(t)
-    print(f"Best threshold on validation: {best_t:.2f} (macro_f1={best_f1:.4f})")
-    test_metrics = evaluate_fusion(gnn, bert, fusion, test_loader, device, mode, threshold=best_t)
-    test_metrics["threshold_used"] = best_t
-    print(f"\n[{mode}] Final test metrics: {test_metrics}")
-        Path("results").mkdir(exist_ok=True)
-        with open(f"results/task3_{mode}_test_metrics.json", "w") as f:
-            json.dump(test_metrics, f, indent=2)
-        return test_metrics
 
     optimizer = torch.optim.AdamW(trainable_params, lr=config["bert"]["learning_rate"])
     criterion = nn.BCEWithLogitsLoss()
@@ -629,7 +616,6 @@ def train_fusion_ablation(mode, config_path="config.yaml", epochs=10):
 
         if val_metrics["macro_f1"] > best_val_f1:
             best_val_f1 = val_metrics["macro_f1"]
-            Path("results").mkdir(exist_ok=True)
             torch.save(gnn.state_dict(), f"results/task3_{mode}_gnn.pt")
             torch.save(fusion.state_dict(), f"results/task3_{mode}_fusion.pt")
             torch.save(bert.state_dict(), f"results/task3_{mode}_bert.pt")
@@ -638,7 +624,9 @@ def train_fusion_ablation(mode, config_path="config.yaml", epochs=10):
     fusion.load_state_dict(torch.load(f"results/task3_{mode}_fusion.pt"))
     bert.load_state_dict(torch.load(f"results/task3_{mode}_bert.pt"))
 
-    test_metrics = evaluate_fusion(gnn, bert, fusion, test_loader, device, mode)
+    best_t = _tune_threshold_fusion(gnn, bert, fusion, val_loader, device, mode)
+    test_metrics = evaluate_fusion(gnn, bert, fusion, test_loader, device, mode, threshold=best_t)
+    test_metrics["threshold_used"] = best_t
     print(f"\n[{mode}] Final test metrics: {test_metrics}")
 
     with open(f"results/task3_{mode}_history.json", "w") as f:
