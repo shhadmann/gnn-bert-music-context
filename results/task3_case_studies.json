@@ -1,0 +1,95 @@
+[
+  {
+    "clip_id": 2,
+    "text": "BWV54 - I Aria American Bach Soloists J.S. Bach Solo Cantatas",
+    "true_tags": [
+      "classical",
+      "strings",
+      "violin",
+      "opera"
+    ],
+    "predicted_tags": [
+      "classical",
+      "strings",
+      "violin",
+      "opera"
+    ],
+    "correct_overlap": [
+      "classical",
+      "violin",
+      "opera",
+      "strings"
+    ],
+    "n_true": 4,
+    "n_overlap": 4,
+    "n_segments": 4,
+    "n_edges": 6
+  },
+  {
+    "clip_id": 5060,
+    "text": "Survival Beth Quist Shall We Dance",
+    "true_tags": [
+      "drums",
+      "vocal",
+      "female",
+      "indian",
+      "singing",
+      "vocals",
+      "woman",
+      "voice",
+      "female vocal",
+      "female voice"
+    ],
+    "predicted_tags": [
+      "drums",
+      "vocal",
+      "female",
+      "indian",
+      "singing",
+      "vocals",
+      "woman",
+      "female vocal",
+      "female voice"
+    ],
+    "correct_overlap": [
+      "indian",
+      "female vocal",
+      "singing",
+      "vocal",
+      "drums",
+      "woman",
+      "female voice",
+      "female",
+      "vocals"
+    ],
+    "n_true": 10,
+    "n_overlap": 9,
+    "n_segments": 4,
+    "n_edges": 6
+  },
+  {
+    "clip_id": 23800,
+    "text": "Oui Mossieur Chuibelle (Dr Kuch) Magnatune.com Magnatune At The CC Salon",
+    "true_tags": [
+      "new age"
+    ],
+    "predicted_tags": [
+      "slow",
+      "techno",
+      "drums",
+      "electronic",
+      "ambient",
+      "beat",
+      "vocal",
+      "female",
+      "indian",
+      "vocals",
+      "woman"
+    ],
+    "correct_overlap": [],
+    "n_true": 1,
+    "n_overlap": 0,
+    "n_segments": 4,
+    "n_edges": 6
+  }
+]
