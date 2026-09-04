@@ -1,0 +1,24 @@
+{
+  "genre_tags": [
+    "classical",
+    "techno",
+    "rock",
+    "opera",
+    "indian",
+    "pop",
+    "new age",
+    "dance",
+    "country",
+    "metal",
+    "classic"
+  ],
+  "mood_tags": [
+    "slow",
+    "fast",
+    "ambient",
+    "loud",
+    "quiet",
+    "soft",
+    "weird"
+  ]
+}
