@@ -53,3 +53,29 @@ class CNNBaseline(nn.Module):
         x = self.global_pool(x).flatten(1)
         logits = self.classifier(x)
         return logits
+
+class GNNEmotionRegressor(nn.Module):
+    """GNN for DEAM valence/arousal regression (Task 3, Stage B).
+    Same GraphSAGE architecture as GNNGenreClassifier, but retrained
+    fresh on DEAM graphs (not reusing GTZAN's or MagnaTagATune's
+    trained weights) with a 2-output regression head instead of a
+    classification head."""
+    def __init__(self, in_channels, hidden_channels=128, num_layers=3, dropout=0.3):
+        super().__init__()
+        self.convs = nn.ModuleList()
+        self.convs.append(SAGEConv(in_channels, hidden_channels))
+        for _ in range(num_layers - 1):
+            self.convs.append(SAGEConv(hidden_channels, hidden_channels))
+
+        self.dropout = dropout
+        self.regressor = nn.Linear(hidden_channels, 2)  # [valence, arousal]
+
+    def forward(self, x, edge_index, batch):
+        for conv in self.convs:
+            x = conv(x, edge_index)
+            x = F.relu(x)
+            x = F.dropout(x, p=self.dropout, training=self.training)
+
+        graph_embedding = global_mean_pool(x, batch)
+        preds = self.regressor(graph_embedding)  # (num_graphs, 2)
+        return preds, graph_embedding        
