@@ -637,5 +637,135 @@ def train_fusion_ablation(mode, config_path="config.yaml", epochs=10):
     return test_metrics
 
 
+# ============================================================
+# Task 3, Stage B: DEAM Emotion Regression (standalone extension)
+# ============================================================
+
+from sklearn.metrics import mean_absolute_error, r2_score
+from gnn_model import GNNEmotionRegressor
+
+
+def load_deam_graphs(split_ids_path, graphs_root="data/processed/deam/graphs"):
+    with open(split_ids_path) as f:
+        song_ids = json.load(f)
+    graphs = []
+    for song_id in song_ids:
+        path = Path(graphs_root) / f"{song_id}.pt"
+        if path.exists():
+            graphs.append(torch.load(path, weights_only=False))
+    return graphs
+
+
+def evaluate_deam(model, loader, device):
+    model.eval()
+    all_preds, all_targets = [], []
+    with torch.no_grad():
+        for batch in loader:
+            batch = batch.to(device)
+            preds, _ = model(batch.x, batch.edge_index, batch.batch)
+            all_preds.append(preds.cpu().numpy())
+            all_targets.append(batch.y.cpu().numpy())
+    all_preds = np.concatenate(all_preds)
+    all_targets = np.concatenate(all_targets)
+
+    valence_mae = mean_absolute_error(all_targets[:, 0], all_preds[:, 0])
+    arousal_mae = mean_absolute_error(all_targets[:, 1], all_preds[:, 1])
+    valence_r2 = r2_score(all_targets[:, 0], all_preds[:, 0])
+    arousal_r2 = r2_score(all_targets[:, 1], all_preds[:, 1])
+
+    return {
+        "valence_mae": float(valence_mae), "arousal_mae": float(arousal_mae),
+        "valence_r2": float(valence_r2), "arousal_r2": float(arousal_r2),
+    }
+
+
+def train_deam_emotion(config_path="config.yaml", epochs=30):
+    with open(config_path) as f:
+        config = yaml.safe_load(f)
+    torch.manual_seed(config["seed"])
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"Using device: {device}")
+
+    # Per the spec's minimum: train/val is the primary partition.
+    # test_extension is this project's own added practice (see roadmap).
+    train_graphs = load_deam_graphs("data/splits/deam_train.json")
+    val_graphs = load_deam_graphs("data/splits/deam_val.json")
+    test_graphs = load_deam_graphs("data/splits/deam_test_extension.json")
+    print(f"Train: {len(train_graphs)}, Val: {len(val_graphs)}, Test (extension): {len(test_graphs)}")
+
+    batch_size = config["training"]["batch_size"]
+    train_loader = GeoDataLoader(train_graphs, batch_size=batch_size, shuffle=True)
+    val_loader = GeoDataLoader(val_graphs, batch_size=batch_size, shuffle=False)
+    test_loader = GeoDataLoader(test_graphs, batch_size=batch_size, shuffle=False)
+
+    in_channels = train_graphs[0].x.shape[1]
+    model = GNNEmotionRegressor(
+        in_channels=in_channels,
+        hidden_channels=config["gnn"]["hidden_channels"],
+        num_layers=config["gnn"]["num_layers"],
+        dropout=config["gnn"]["dropout"],
+    ).to(device)
+
+    optimizer = torch.optim.AdamW(model.parameters(), lr=config["training"]["learning_rate"])
+
+    alpha = config["fusion"]["alpha"]
+    beta = config["fusion"]["beta"]
+
+    best_val_mae_sum = float("inf")
+    history = []
+
+    for epoch in range(epochs):
+        model.train()
+        total_loss, total_valence_loss, total_arousal_loss = 0, 0, 0
+
+        for batch in train_loader:
+            batch = batch.to(device)
+            optimizer.zero_grad()
+            preds, _ = model(batch.x, batch.edge_index, batch.batch)
+
+            valence_loss = F.mse_loss(preds[:, 0], batch.y[:, 0])
+            arousal_loss = F.mse_loss(preds[:, 1], batch.y[:, 1])
+            loss = alpha * valence_loss + beta * arousal_loss
+
+            loss.backward()
+            optimizer.step()
+            total_loss += loss.item()
+            total_valence_loss += valence_loss.item()
+            total_arousal_loss += arousal_loss.item()
+
+        n_batches = len(train_loader)
+        avg_loss = total_loss / n_batches
+        avg_valence_loss = total_valence_loss / n_batches
+        avg_arousal_loss = total_arousal_loss / n_batches
+
+        val_metrics = evaluate_deam(model, val_loader, device)
+        val_mae_sum = val_metrics["valence_mae"] + val_metrics["arousal_mae"]
+
+        print(f"Epoch {epoch+1}/{epochs}: loss={avg_loss:.4f} "
+              f"(valence_loss={avg_valence_loss:.4f}, arousal_loss={avg_arousal_loss:.4f}) | "
+              f"val_valence_mae={val_metrics['valence_mae']:.4f}, val_arousal_mae={val_metrics['arousal_mae']:.4f}, "
+              f"val_valence_r2={val_metrics['valence_r2']:.4f}, val_arousal_r2={val_metrics['arousal_r2']:.4f}")
+        history.append({"epoch": epoch + 1, "train_loss": avg_loss,
+                         "train_valence_loss": avg_valence_loss, "train_arousal_loss": avg_arousal_loss,
+                         **val_metrics})
+
+        if val_mae_sum < best_val_mae_sum:
+            best_val_mae_sum = val_mae_sum
+            Path("results").mkdir(exist_ok=True)
+            torch.save(model.state_dict(), "results/deam_gnn_best.pt")
+
+    model.load_state_dict(torch.load("results/deam_gnn_best.pt"))
+    test_metrics = evaluate_deam(model, test_loader, device)
+    test_metrics["alpha"] = alpha
+    test_metrics["beta"] = beta
+    print(f"\nDEAM final test metrics (extension split): {test_metrics}")
+
+    with open("results/task3_deam_history.json", "w") as f:
+        json.dump(history, f, indent=2)
+    with open("results/task3_deam_test_metrics.json", "w") as f:
+        json.dump(test_metrics, f, indent=2)
+
+    return model, test_metrics
+
 if __name__ == "__main__":
     train_task1()
