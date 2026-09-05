@@ -767,5 +767,171 @@ def train_deam_emotion(config_path="config.yaml", epochs=30):
 
     return model, test_metrics
 
+
+# ============================================================
+# Task 4: Contrastive Retrieval on MusicCaps
+# ============================================================
+
+from contrastive import GraphEncoder, TextEncoder, info_nce_loss
+from transformers import BertModel
+
+
+class MusicCapsDataset(Dataset):
+    def __init__(self, ytids, graphs_root="data/processed/musiccaps/graphs"):
+        self.ytids = [y for y in ytids if (Path(graphs_root) / f"{y}.pt").exists()]
+        self.graphs_root = graphs_root
+
+    def __len__(self):
+        return len(self.ytids)
+
+    def __getitem__(self, idx):
+        ytid = self.ytids[idx]
+        graph = torch.load(Path(self.graphs_root) / f"{ytid}.pt", weights_only=False)
+        caption = graph.caption
+        return graph, caption, ytid
+
+
+def musiccaps_collate_fn(batch, tokenizer, max_length):
+    graphs, captions, ytids = zip(*batch)
+    graph_batch = Batch.from_data_list(list(graphs))
+    tokenized = tokenize_batch(tokenizer, list(captions), max_length=max_length)
+    return graph_batch, tokenized, list(ytids)
+
+
+def compute_retrieval_metrics(graph_embeds, text_embeds, ks=(1, 5, 10)):
+    """
+    graph_embeds, text_embeds: (N, embed_dim), row i of each corresponds
+    to the same clip (aligned pairs). Computes R@k both directions.
+    """
+    sim = graph_embeds @ text_embeds.T  # (N, N), sim[i, j] = audio_i vs caption_j
+    n = sim.shape[0]
+
+    results = {}
+    for direction, matrix in [("audio_to_caption", sim), ("caption_to_audio", sim.T)]:
+        ranks = []
+        for i in range(n):
+            row = matrix[i]
+            correct_score = row[i]
+            rank = (row > correct_score).sum().item() + 1  # 1-indexed rank of the correct match
+            ranks.append(rank)
+        ranks = np.array(ranks)
+        for k in ks:
+            results[f"{direction}_R@{k}"] = float((ranks <= k).mean())
+
+    return results
+
+
+def train_contrastive_task4(config_path="config.yaml", epochs=15):
+    with open(config_path) as f:
+        config = yaml.safe_load(f)
+    torch.manual_seed(config["seed"])
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"Using device: {device}")
+
+    with open("data/splits/musiccaps_train.json") as f:
+        train_ids = json.load(f)
+    with open("data/splits/musiccaps_val.json") as f:
+        val_ids = json.load(f)
+    with open("data/splits/musiccaps_test.json") as f:
+        test_ids = json.load(f)
+
+    tokenizer = load_tokenizer(config["bert"]["model_name"])
+    max_length = config["bert"]["max_length"]
+
+    train_ds = MusicCapsDataset(train_ids)
+    val_ds = MusicCapsDataset(val_ids)
+    test_ds = MusicCapsDataset(test_ids)
+
+    collate = lambda b: musiccaps_collate_fn(b, tokenizer, max_length)
+    batch_size = config["training"]["batch_size"]
+    train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True, collate_fn=collate, drop_last=True)
+    val_loader = DataLoader(val_ds, batch_size=batch_size, shuffle=False, collate_fn=collate)
+    test_loader = DataLoader(test_ds, batch_size=batch_size, shuffle=False, collate_fn=collate)
+
+    in_channels = train_ds[0][0].x.shape[1]
+    embed_dim = config["contrastive"]["embed_dim"]
+    temperature = config["contrastive"]["temperature"]
+
+    graph_encoder = GraphEncoder(
+        in_channels=in_channels, hidden_channels=config["gnn"]["hidden_channels"],
+        num_layers=config["gnn"]["num_layers"], embed_dim=embed_dim,
+        dropout=config["gnn"]["dropout"],
+    ).to(device)
+
+    bert_model = BertModel.from_pretrained(config["bert"]["model_name"])
+    text_encoder = TextEncoder(bert_model, embed_dim=embed_dim).to(device)
+
+    optimizer = torch.optim.AdamW(
+        list(graph_encoder.parameters()) + list(text_encoder.parameters()),
+        lr=config["bert"]["learning_rate"],
+    )
+
+    def get_all_embeddings(loader):
+        graph_encoder.eval()
+        text_encoder.eval()
+        all_g, all_t = [], []
+        with torch.no_grad():
+            for graph_batch, tokenized, _ in loader:
+                graph_batch = graph_batch.to(device)
+                input_ids = tokenized["input_ids"].to(device)
+                attention_mask = tokenized["attention_mask"].to(device)
+                g = graph_encoder(graph_batch.x, graph_batch.edge_index, graph_batch.batch)
+                t = text_encoder(input_ids, attention_mask)
+                all_g.append(g.cpu())
+                all_t.append(t.cpu())
+        return torch.cat(all_g), torch.cat(all_t)
+
+    best_val_r5 = -1
+    history = []
+
+    for epoch in range(epochs):
+        graph_encoder.train()
+        text_encoder.train()
+        total_loss = 0
+
+        for graph_batch, tokenized, _ in tqdm(train_loader, desc=f"Epoch {epoch+1}/{epochs}"):
+            graph_batch = graph_batch.to(device)
+            input_ids = tokenized["input_ids"].to(device)
+            attention_mask = tokenized["attention_mask"].to(device)
+
+            optimizer.zero_grad()
+            g = graph_encoder(graph_batch.x, graph_batch.edge_index, graph_batch.batch)
+            t = text_encoder(input_ids, attention_mask)
+            loss = info_nce_loss(g, t, temperature=temperature)
+            loss.backward()
+            optimizer.step()
+            total_loss += loss.item()
+
+        avg_loss = total_loss / len(train_loader)
+
+        val_g, val_t = get_all_embeddings(val_loader)
+        val_metrics = compute_retrieval_metrics(val_g, val_t)
+        val_r5_avg = (val_metrics["audio_to_caption_R@5"] + val_metrics["caption_to_audio_R@5"]) / 2
+
+        print(f"Epoch {epoch+1}: train_loss={avg_loss:.4f}, "
+              f"val_a2c_R@5={val_metrics['audio_to_caption_R@5']:.4f}, "
+              f"val_c2a_R@5={val_metrics['caption_to_audio_R@5']:.4f}")
+        history.append({"epoch": epoch + 1, "train_loss": avg_loss, **val_metrics})
+
+        if val_r5_avg > best_val_r5:
+            best_val_r5 = val_r5_avg
+            Path("results").mkdir(exist_ok=True)
+            torch.save(graph_encoder.state_dict(), "results/contrastive_graph_encoder.pt")
+            torch.save(text_encoder.state_dict(), "results/contrastive_text_encoder.pt")
+
+    graph_encoder.load_state_dict(torch.load("results/contrastive_graph_encoder.pt"))
+    text_encoder.load_state_dict(torch.load("results/contrastive_text_encoder.pt"))
+
+    test_g, test_t = get_all_embeddings(test_loader)
+    test_metrics = compute_retrieval_metrics(test_g, test_t)
+    print(f"\nFinal test retrieval metrics: {test_metrics}")
+
+    with open("results/task4_history.json", "w") as f:
+        json.dump(history, f, indent=2)
+    with open("results/task4_test_metrics.json", "w") as f:
+        json.dump(test_metrics, f, indent=2)
+
+    return graph_encoder, text_encoder, test_metrics
+
 if __name__ == "__main__":
     train_task1()
