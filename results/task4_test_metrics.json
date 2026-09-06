@@ -1,0 +1,8 @@
+{
+  "audio_to_caption_R@1": 0.0,
+  "audio_to_caption_R@5": 0.011349306431273645,
+  "audio_to_caption_R@10": 0.021437578814627996,
+  "caption_to_audio_R@1": 0.0012610340479192938,
+  "caption_to_audio_R@5": 0.01008827238335435,
+  "caption_to_audio_R@10": 0.025220680958385876
+}

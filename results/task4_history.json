@@ -1,0 +1,12 @@
+[
+  {
+    "epoch": 1,
+    "train_loss": 3.4711749139039414,
+    "audio_to_caption_R@1": 0.0012642225031605564,
+    "audio_to_caption_R@5": 0.012642225031605562,
+    "audio_to_caption_R@10": 0.022756005056890013,
+    "caption_to_audio_R@1": 0.0,
+    "caption_to_audio_R@5": 0.008849557522123894,
+    "caption_to_audio_R@10": 0.015170670037926675
+  }
+]
