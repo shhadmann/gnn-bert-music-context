@@ -5,3 +5,4 @@ data/raw/
 data/processed/
 .ipynb_checkpoints/
 *.pt
+results/human_eval_clips/*.mp3
