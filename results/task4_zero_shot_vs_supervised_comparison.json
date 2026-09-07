@@ -1,0 +1,8 @@
+{
+  "n_compared": 793,
+  "avg_zero_shot_tags_per_caption": 5.0,
+  "avg_supervised_tags_per_caption": 5.0,
+  "pct_with_any_overlap": 23.203026481715007,
+  "avg_overlap_count": 0.2547288776796974,
+  "caveat": "Task 3's BERT was trained on title+artist+album text (MagnaTagATune), not natural-language captions -- applying it to MusicCaps captions here is out-of-distribution for that model, not a clean apples-to-apples test."
+}
