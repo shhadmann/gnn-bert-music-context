@@ -53,7 +53,7 @@ gnn-bert-music-context/
 ├── notebooks/
 │ └── demo_context.ipynb # end-to-end inference demo
 └── report/
-└── final_report.pdf # final report (NeurIPS format)
+└── final_report.pdf # final report (NeurIPS format) 
 
 
 ## Environment
