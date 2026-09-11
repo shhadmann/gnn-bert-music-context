@@ -92,7 +92,7 @@ pip install -r requirements.txt
 Several judgment calls were required where the assignment specification
 was ambiguous or where dataset limitations made a literal reading
 infeasible. Each is documented explicitly in the final report's
-Methodology and Discussion sections rather than left implicit —
+Methodology and Discussion sections rather than left implicit -
 including the Task 1 text-input choice, the MagnaTagATune split
 correction, the DEAM/MagnaTagATune non-pairing (Task 3 Stage B run as
-a standalone extension), and the MusicCaps segment-duration override.
+a standalone extension) and the MusicCaps segment-duration override.
