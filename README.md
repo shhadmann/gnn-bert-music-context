@@ -1,10 +1,10 @@
 # GNN-BERT Music Context Understanding
 
-CSE425 / EEE474 / CSE715 — Neural Networks project.
+CSE425 / EEE474 / CSE715 - Neural Networks project.
 
 A hybrid GNN + BERT system for understanding musical context across
 four tasks: multi-label tag classification, genre classification,
-GNN-BERT fusion (with an emotion-regression extension), and
+GNN-BERT fusion (with an emotion-regression extension) and
 cross-modal audio-caption retrieval.
 
 **Full report:** [`report/final_report.pdf`](report/final_report.pdf)
@@ -14,12 +14,12 @@ cross-modal audio-caption retrieval.
 
 | Task | Headline result |
 |---|---|
-| Task 1 — BERT tag classification | Macro-F1 = 0.311, AUC-PR = 0.295 |
-| Task 2 — GNN vs. CNN (GTZAN) | GNN Macro-F1 = 0.289; CNN Macro-F1 = 0.693 |
-| Task 3 — Fusion ablations (best) | Early Concat / Cross-Attention Macro-F1 ≈ 0.32–0.33 |
-| Task 3 — DEAM emotion regression | Valence R² = 0.075, Arousal R² = 0.108 |
-| Task 4 — Contrastive retrieval | R@10 ≈ 0.03–0.035 (2.3–2.8× random chance) |
-| Task 4 — Human evaluation | Mean 3.36/5 across 5 listeners, 10 items |
+| Task 1 - BERT tag classification | Macro-F1 = 0.311, AUC-PR = 0.295 |
+| Task 2 - GNN vs. CNN (GTZAN) | GNN Macro-F1 = 0.289; CNN Macro-F1 = 0.693 |
+| Task 3 - Fusion ablations (best) | Early Concat / Cross-Attention Macro-F1 ≈ 0.32–0.33 |
+| Task 3 - DEAM emotion regression | Valence R² = 0.075, Arousal R² = 0.108 |
+| Task 4 - Contrastive retrieval | R@10 ≈ 0.03–0.035 (2.3–2.8× random chance) |
+| Task 4 - Human evaluation | Mean 3.36/5 across 5 listeners, 10 items |
 
 See the report for full discussion and analysis of every result.
 
