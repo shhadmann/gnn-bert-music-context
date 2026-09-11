@@ -54,44 +54,6 @@ gnn-bert-music-context/
 ├── notebooks/
 │   └── demo_context.ipynb     # end-to-end inference demo
 └── report/
-    └── final_report.pdf       # final report (NeurIPS format)  ```
+    └── final_report.pdf       # final report (NeurIPS format)  
 
-
-## Environment
-
-- Python 3.13.5
-- PyTorch 2.11.0+cu128 (training, Colab T4 GPU) / 2.13.0+cpu (local dev/preprocessing)
-- Key packages: torch-geometric 2.8.0, transformers, librosa, scikit-learn
-
-pip install -r requirements.txt
-
-
-## Datasets
-
-| Dataset | Used for | Notes |
-|---|---|---|
-| GTZAN | Task 2 | Genre-stratified project split (no official split exists) |
-| MagnaTagATune | Task 1, Task 3 (Stage A) | Standard field "12:1:3" folder split |
-| DEAM | Task 3 (Stage B, standalone extension) | Spec's train/val partition + added test split |
-| MusicCaps | Task 4 | Audio downloaded via `yt-dlp`; 95.6% coverage (5278/5521) |
-
-## Reproducibility
-
-- Fixed seed (42) throughout; all hyperparameters in `config.yaml`.
-- Every dataset split was built once, saved to `data/splits/`, and reused
-  identically across every experiment touching that dataset.
-- Every task's final metrics were independently re-verified by reloading
-  saved checkpoints and re-running evaluation from scratch via
-  `src/evaluate.py` — recomputed results matched originally-recorded
-  training results to within floating-point precision
-  (see `results/final_summary_all_tasks.json`).
-
-## Notable Design Decisions
-
-Several judgment calls were required where the assignment specification
-was ambiguous or where dataset limitations made a literal reading
-infeasible. Each is documented explicitly in the final report's
-Methodology and Discussion sections rather than left implicit —
-including the Task 1 text-input choice, the MagnaTagATune split
-correction, the DEAM/MagnaTagATune non-pairing (Task 3 Stage B run as
-a standalone extension), and the MusicCaps segment-duration override.
+```
