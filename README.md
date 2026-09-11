@@ -25,35 +25,36 @@ See the report for full discussion and analysis of every result.
 
 ## Repository Structure
 
+```text
 gnn-bert-music-context/
 ├── README.md
 ├── requirements.txt
-├── config.yaml # all hyperparameters, fixed seed (42)
+├── config.yaml                # all hyperparameters, fixed seed (42)
 │
-├── src/ # core, reusable pipeline code
-│ ├── audio_features.py # resample, log-mel, chroma, segmentation
-│ ├── graph_builder.py # segment graph construction
-│ ├── bert_encoder.py # Task 1 BERT tag classifier
-│ ├── gnn_model.py # Task 2/3 GNN + CNN baseline + emotion regressor
-│ ├── fusion_model.py # Task 3 cross-attention / early-concat fusion
-│ ├── contrastive.py # Task 4 dual-encoder + InfoNCE
-│ ├── train.py # all training loops
-│ └── evaluate.py # consolidated re-verification of every result
+├── src/                       # core, reusable pipeline code
+│   ├── audio_features.py      # resample, log-mel, chroma, segmentation
+│   ├── graph_builder.py       # segment graph construction
+│   ├── bert_encoder.py        # Task 1 BERT tag classifier
+│   ├── gnn_model.py           # Task 2/3 GNN + CNN baseline + emotion regressor
+│   ├── fusion_model.py        # Task 3 cross-attention / early-concat fusion
+│   ├── contrastive.py         # Task 4 dual-encoder + InfoNCE
+│   ├── train.py               # all training loops
+│   └── evaluate.py            # consolidated re-verification of every result
 │
-├── scripts/ # one-off dataset download/processing/analysis
-│ # scripts, run from repo root, e.g.:
-│ # python scripts/build_gtzan_split.py
+├── scripts/                   # one-off dataset download/processing/analysis
+│                              # scripts, run from repo root, e.g.:
+│                              #   python scripts/build_gtzan_split.py
 │
 ├── data/
-│ ├── raw/ # gitignored — GTZAN, MagnaTagATune, DEAM, MusicCaps
-│ ├── processed/ # gitignored — extracted features (.npz), graphs (.pt)
-│ └── splits/ # tracked — train/val/test membership per dataset
+│   ├── raw/                   # gitignored — GTZAN, MagnaTagATune, DEAM, MusicCaps
+│   ├── processed/             # gitignored — extracted features (.npz), graphs (.pt)
+│   └── splits/                # tracked — train/val/test membership per dataset
 │
-├── results/ # final metrics, plots, master results table
+├── results/                   # final metrics, plots, master results table
 ├── notebooks/
-│ └── demo_context.ipynb # end-to-end inference demo
+│   └── demo_context.ipynb     # end-to-end inference demo
 └── report/
-└── final_report.pdf # final report (NeurIPS format) 
+    └── final_report.pdf       # final report (NeurIPS format) 
 
 
 ## Environment
