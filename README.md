@@ -3,50 +3,94 @@
 CSE425 / EEE474 / CSE715 — Neural Networks project.
 
 A hybrid GNN + BERT system for understanding musical context across
-four tasks: tag classification, genre classification, multi-modal
-fusion, and cross-modal retrieval.
+four tasks: multi-label tag classification, genre classification,
+GNN-BERT fusion (with an emotion-regression extension), and
+cross-modal audio-caption retrieval.
+
+**Full report:** [`report/final_report.pdf`](report/final_report.pdf)
+**Full results:** [`results/master_results_table.md`](results/master_results_table.md)
+
+## Key Results
+
+| Task | Headline result |
+|---|---|
+| Task 1 — BERT tag classification | Macro-F1 = 0.311, AUC-PR = 0.295 |
+| Task 2 — GNN vs. CNN (GTZAN) | GNN Macro-F1 = 0.289; CNN Macro-F1 = 0.693 |
+| Task 3 — Fusion ablations (best) | Early Concat / Cross-Attention Macro-F1 ≈ 0.32–0.33 |
+| Task 3 — DEAM emotion regression | Valence R² = 0.075, Arousal R² = 0.108 |
+| Task 4 — Contrastive retrieval | R@10 ≈ 0.03–0.035 (2.3–2.8× random chance) |
+| Task 4 — Human evaluation | Mean 3.36/5 across 5 listeners, 10 items |
+
+See the report for full discussion and analysis of every result.
+
+## Repository Structure
+
+gnn-bert-music-context/
+├── README.md
+├── requirements.txt
+├── config.yaml # all hyperparameters, fixed seed (42)
+│
+├── src/ # core, reusable pipeline code
+│ ├── audio_features.py # resample, log-mel, chroma, segmentation
+│ ├── graph_builder.py # segment graph construction
+│ ├── bert_encoder.py # Task 1 BERT tag classifier
+│ ├── gnn_model.py # Task 2/3 GNN + CNN baseline + emotion regressor
+│ ├── fusion_model.py # Task 3 cross-attention / early-concat fusion
+│ ├── contrastive.py # Task 4 dual-encoder + InfoNCE
+│ ├── train.py # all training loops
+│ └── evaluate.py # consolidated re-verification of every result
+│
+├── scripts/ # one-off dataset download/processing/analysis
+│ # scripts, run from repo root, e.g.:
+│ # python scripts/build_gtzan_split.py
+│
+├── data/
+│ ├── raw/ # gitignored — GTZAN, MagnaTagATune, DEAM, MusicCaps
+│ ├── processed/ # gitignored — extracted features (.npz), graphs (.pt)
+│ └── splits/ # tracked — train/val/test membership per dataset
+│
+├── results/ # final metrics, plots, master results table
+├── notebooks/
+│ └── demo_context.ipynb # end-to-end inference demo
+└── report/
+└── final_report.pdf # final report (NeurIPS format)
+
 
 ## Environment
 
-- Python: 3.13.5
-- PyTorch: 2.11.0+cu128 (Colab GPU, Tesla T4) / 2.13.0+cpu (local dev)
-- CUDA: 12.8
-- Local dev machine: Ryzen 5 5600G (CPU-only, no discrete GPU)
+- Python 3.13.5
+- PyTorch 2.11.0+cu128 (training, Colab T4 GPU) / 2.13.0+cpu (local dev/preprocessing)
 - Key packages: torch-geometric 2.8.0, transformers, librosa, scikit-learn
 
-## Project Structure
-
-- `src/` — core model and pipeline code (audio features, graph
-  construction, BERT/GNN/fusion/contrastive models, training)
-- `data/splits/` — train/val/test membership per dataset (tracked)
-- `data/raw/`, `data/processed/` — datasets and derived features/graphs
-  (gitignored — regenerate via the root-level scripts)
-- `results/` — final metrics, plots, and the master results table
-- `notebooks/demo_context.ipynb` — end-to-end inference demo
-- `report/` — final report and supporting documentation
-
-## Tasks
-
-1. **BERT tag classification** (MagnaTagATune, title+artist+album → top-50 tags)
-2. **GNN genre classification** (GTZAN segment graphs) + CNN baseline
-3. **GNN-BERT fusion** (MagnaTagATune, 4-way ablation) + DEAM emotion regression extension
-4. **Contrastive retrieval** (MusicCaps, dual-encoder InfoNCE)
-
-Full results: see `results/master_results_table.md`.
-
-## Setup
-
-​```
 pip install -r requirements.txt
-​```
 
-See `config.yaml` for all hyperparameters and the fixed seed (42).
-Training was run on Google Colab (T4 GPU); preprocessing and evaluation
-run locally on CPU.
 
+## Datasets
+
+| Dataset | Used for | Notes |
+|---|---|---|
+| GTZAN | Task 2 | Genre-stratified project split (no official split exists) |
+| MagnaTagATune | Task 1, Task 3 (Stage A) | Standard field "12:1:3" folder split |
+| DEAM | Task 3 (Stage B, standalone extension) | Spec's train/val partition + added test split |
+| MusicCaps | Task 4 | Audio downloaded via `yt-dlp`; 95.6% coverage (5278/5521) |
 
 ## Reproducibility
 
-Every task's final metrics were independently re-verified by reloading
-saved checkpoints and re-running evaluation via `src/evaluate.py` —
-see `results/final_summary_all_tasks.json`.
+- Fixed seed (42) throughout; all hyperparameters in `config.yaml`.
+- Every dataset split was built once, saved to `data/splits/`, and reused
+  identically across every experiment touching that dataset.
+- Every task's final metrics were independently re-verified by reloading
+  saved checkpoints and re-running evaluation from scratch via
+  `src/evaluate.py` — recomputed results matched originally-recorded
+  training results to within floating-point precision
+  (see `results/final_summary_all_tasks.json`).
+
+## Notable Design Decisions
+
+Several judgment calls were required where the assignment specification
+was ambiguous or where dataset limitations made a literal reading
+infeasible. Each is documented explicitly in the final report's
+Methodology and Discussion sections rather than left implicit —
+including the Task 1 text-input choice, the MagnaTagATune split
+correction, the DEAM/MagnaTagATune non-pairing (Task 3 Stage B run as
+a standalone extension), and the MusicCaps segment-duration override.
