@@ -61,7 +61,7 @@ gnn-bert-music-context/
 ## Environment
 
 - Python 3.13.5
-- PyTorch 2.11.0+cu128 (training, Colab T4 GPU) / 2.13.0+cpu (local dev/preprocessing)
+- PyTorch 2.11.0+cu128 (training, Colab T4 GPU)/2.13.0+cpu (local dev/preprocessing)
 - Key packages: torch-geometric 2.8.0, transformers, librosa, scikit-learn
 
 pip install -r requirements.txt
@@ -83,7 +83,7 @@ pip install -r requirements.txt
   identically across every experiment touching that dataset.
 - Every task's final metrics were independently re-verified by reloading
   saved checkpoints and re-running evaluation from scratch via
-  `src/evaluate.py` — recomputed results matched originally-recorded
+  `src/evaluate.py` - recomputed results matched originally-recorded
   training results to within floating-point precision
   (see `results/final_summary_all_tasks.json`).
 
@@ -94,5 +94,5 @@ was ambiguous or where dataset limitations made a literal reading
 infeasible. Each is documented explicitly in the final report's
 Methodology and Discussion sections rather than left implicit -
 including the Task 1 text-input choice, the MagnaTagATune split
-correction, the DEAM/MagnaTagATune non-pairing (Task 3 Stage B run as
+correction,the DEAM/MagnaTagATune non-pairing (Task 3 Stage B run as
 a standalone extension) and the MusicCaps segment-duration override.
