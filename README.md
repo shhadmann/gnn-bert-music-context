@@ -1,6 +1,6 @@
 # GNN-BERT Music Context Understanding
 
-CSE425 / EEE474 / CSE715 - Neural Networks project.
+CSE425 Neural Networks project.
 
 A hybrid GNN + BERT system for understanding musical context across
 four tasks: multi-label tag classification, genre classification,
